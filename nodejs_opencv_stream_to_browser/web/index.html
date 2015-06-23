@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+    <head lang="en">
+        <meta charset="UTF-8">
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="/jquery-1.11.3.min.js"></script>
+    </head>
+    <body>
+        <img src="/reye.png" alt="" style="width: 120px;"><br>
+        
+        <img id="image" src="" alt="" style="width: 640px; height: 480px;">
+
+        <br>
+        <label for="check-canny">
+            <input type="checkbox" id="check-canny" class="imageOpt">
+            Canny edge detection
+        </label>
+        <label for="check-gaussian">
+            <input type="checkbox" id="check-gaussian" class="imageOpt">
+            Gaussian blur
+        </label>
+
+        <script>
+            var socket = io();
+            var urlCreator = window.URL || window.webkitURL;
+            var img = document.getElementById("image");
+
+            socket.on("newFrame", function (b) {
+                img.src = urlCreator.createObjectURL(new Blob([b], {type: "image/jpeg"}));
+            });
+
+            socket.on("imageOpts", function (d) {
+                for (var k in d) {
+                    $("#check-" + k).prop("checked", d[k]);
+                }
+            });
+
+            $(".imageOpt").change(function () {
+                socket.emit("imageOpts", {
+                    gaussian: $("#check-gaussian").is(":checked"),
+                    canny: $("#check-canny").is(":checked")
+                });
+            });
+        </script>
+    </body>
+</html>

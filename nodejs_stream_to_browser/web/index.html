@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+    <head lang="en">
+        <meta charset="UTF-8">
+        <script src="/socket.io/socket.io.js"></script>
+    </head>
+    <body>
+        <img src="/reye.png" alt="" style="width: 120px;"><br>
+
+        <canvas id="image" style="width: 640px; height: 480px;"></canvas>
+        <script>
+            function MyCanvas(elementId, width, height) {
+                var canvas = document.getElementById(elementId);
+                var ctx = canvas.getContext("2d");
+                canvas.width = width;
+                canvas.height = height;
+                var imageData = ctx.createImageData(1, 1);
+                var d = imageData.data;
+
+                this.width = width;
+                this.height = height;
+
+                this.setPixel = function (x, y, r, g, b, a) {
+                    d[0] = ~~r;
+                    d[1] = ~~g;
+                    d[2] = ~~b;
+                    d[3] = a ? ~~a : 255;
+                    ctx.putImageData(imageData, x, y);
+                };
+
+                this.clear = function () {
+                    ctx.clearRect(0, 0, this.width, this.height);
+                };
+
+                this.getContext = function () {
+                    return ctx;
+                };
+            }
+
+            var image = new MyCanvas("image", 80, 60);
+
+            io().on("newFrame", function (b) {
+                var raw = new Uint16Array(b);
+
+                var i, min = Infinity, max = -1, px;
+                for (i = 0; i < 80 * 60; i++) {
+                    if (min > raw[i]) min = raw[i];
+                    if (max < raw[i]) max = raw[i];
+                }
+
+                for (i = 0; i < 80 * 60; i++) {
+                    px = Math.floor(256 * (raw[i] - min) / (max - min + 1));
+
+                    image.setPixel(i % 80, Math.floor(i / 80), px, px, px, 255);
+                }
+            });
+
+        </script>
+    </body>
+</html>
