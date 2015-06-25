@@ -2,13 +2,6 @@ var net = require("net");
 var fs = require("fs");
 var opencv = require("opencv");
 
-if (process.argv.length < 3) {
-    console.error("Usage: node index.js <LEPTON-IP-ADDRESS>");
-    process.exit(-1);
-}
-
-var host = process.argv[2];
-
 var imageOpts = {
     gaussian: false,
     canny: false
@@ -77,26 +70,72 @@ function leptonFrameArrived(imageFrame) {
 }
 
 
-var client = new net.Socket();
-
-client.connect(1370, host, function () {
-    console.log("Connected to Lepton");
-});
-
 var b = new Buffer(0);
-client.on("data", function (data) {
-    b = Buffer.concat([b, data]);
-    while (b.length > LEPTON_BUFFER_SIZE) {
-        var imageBuffer = new Buffer(LEPTON_BUFFER_SIZE);
-        b.copy(imageBuffer, 0, 0, LEPTON_BUFFER_SIZE);
-        leptonFrameArrived(imageBuffer);
 
-        var t = new Buffer(b.length - LEPTON_BUFFER_SIZE);
-        b.copy(t, 0, LEPTON_BUFFER_SIZE, b.length);
-        b = t;
-    }
-});
+if (process.argv.length == 3) {
+    console.log("Connecting to TCP");
 
-client.on("close", function () {
-    console.log("Connection to Lepton closed");
-});
+    var host = process.argv[2];
+    var client = new net.Socket();
+
+    client.connect(1370, host, function () {
+        console.log("Connected to Lepton");
+    });
+
+
+    client.on("data", function (data) {
+        b = Buffer.concat([b, data]);
+        while (b.length > LEPTON_BUFFER_SIZE) {
+            var imageBuffer = new Buffer(LEPTON_BUFFER_SIZE);
+            b.copy(imageBuffer, 0, 0, LEPTON_BUFFER_SIZE);
+            leptonFrameArrived(imageBuffer);
+
+            var t = new Buffer(b.length - LEPTON_BUFFER_SIZE);
+            b.copy(t, 0, LEPTON_BUFFER_SIZE, b.length);
+            b = t;
+        }
+    });
+
+    client.on("close", function () {
+        console.log("Connection to Lepton closed");
+    });
+
+} else {
+    console.log("Listening on UDP");
+
+    var dgram = require("dgram");
+    var s = dgram.createSocket("udp4");
+    var bufferCounter = 0;
+    var frameBuffer = new Buffer(LEPTON_BUFFER_SIZE);
+    var arrived = 0;
+    var nextNumber = 0;
+
+    s.on("message", function (data, rinfo) {
+        var counter = parseInt(data[0]);
+        bufferCounter |= 1 << counter;
+
+        data.copy(frameBuffer, arrived, 1, data.length);
+        arrived += data.length - 1;
+
+        if (counter == 6) {
+            if (bufferCounter == 127) {
+                var t = new Buffer(LEPTON_BUFFER_SIZE);
+                for (var i = 0; i < 4800; i++) {
+                    t[i * 2] = frameBuffer[i * 2 + 1];
+                    t[i * 2 + 1] = frameBuffer[i * 2];
+                }
+                leptonFrameArrived(t);
+            }
+        }
+
+        if (counter == 6 || nextNumber != counter) {
+            bufferCounter = 0;
+            arrived = 0;
+            frameBuffer = new Buffer(LEPTON_BUFFER_SIZE);
+        }
+
+        nextNumber = (counter + 1) % 7;
+    });
+    s.bind(7370);
+
+}
