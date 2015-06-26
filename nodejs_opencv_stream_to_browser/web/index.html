@@ -4,21 +4,67 @@
         <meta charset="UTF-8">
         <script src="/socket.io/socket.io.js"></script>
         <script src="/jquery-1.11.3.min.js"></script>
+        <style>
+            .button-on {
+                background-color: #44c767;
+                -moz-border-radius: 10px;
+                -webkit-border-radius: 10px;
+                border-radius: 10px;
+                border: 1px solid #18ab29;
+                display: inline-block;
+                cursor: pointer;
+                color: #ffffff;
+                font-family: Arial;
+                font-size: 17px;
+                padding: 12px 31px;
+                text-decoration: none;
+                text-shadow: 0px -1px 2px #2f6627;
+            }
+
+            .button-on:hover {
+                background-color: #5cbf2a;
+            }
+
+            .button-on:active {
+                position: relative;
+                top: 1px;
+            }
+
+            .button-off {
+                background-color: #b8b8b8;
+                -moz-border-radius: 10px;
+                -webkit-border-radius: 10px;
+                border-radius: 10px;
+                border: 1px solid #d1d1d1;
+                display: inline-block;
+                cursor: pointer;
+                color: #ffffff;
+                font-family: Arial;
+                font-size: 17px;
+                padding: 12px 31px;
+                text-decoration: none;
+                text-shadow: 0px -1px 2px #bfbfbf;
+            }
+
+            .button-off:hover {
+                background-color: #b4e09c;
+            }
+
+            .button-off:active {
+                position: relative;
+                top: 1px;
+            }
+
+        </style>
     </head>
     <body>
         <img src="/reye.png" alt="" style="width: 120px;"><br>
-        
-        <img id="image" src="" alt="" style="width: 640px; height: 480px;">
 
-        <br>
-        <label for="check-canny">
-            <input type="checkbox" id="check-canny" class="imageOpt">
-            Canny edge detection
-        </label>
-        <label for="check-gaussian">
-            <input type="checkbox" id="check-gaussian" class="imageOpt">
-            Gaussian blur
-        </label>
+        <img id="image" src="" alt="" style="width: 640px; height: 480px;"><br>
+
+        <a id="check-gaussian" href="#" class="imageOpt button-off">Guassian blur</a>
+        <a id="check-canny" href="#" class="imageOpt button-off">Canny edge detection</a>
+
 
         <script>
             var socket = io();
@@ -29,17 +75,30 @@
                 img.src = urlCreator.createObjectURL(new Blob([b], {type: "image/jpeg"}));
             });
 
-            socket.on("imageOpts", function (d) {
+            var state = {
+                gaussian: false,
+                canny: false
+            };
+
+            function setState(d) {
+                state = d;
                 for (var k in d) {
-                    $("#check-" + k).prop("checked", d[k]);
+                    $("#check-" + k).toggleClass("button-on", d[k]).toggleClass("button-off", !d[k]);
                 }
+            }
+
+            socket.on("imageOpts", function (d) {
+                setState(d);
             });
 
-            $(".imageOpt").change(function () {
-                socket.emit("imageOpts", {
-                    gaussian: $("#check-gaussian").is(":checked"),
-                    canny: $("#check-canny").is(":checked")
-                });
+            $(".imageOpt").click(function () {
+                var k = this.id.split("-")[1];
+                state[k] = !state[k];
+                setState(state);
+
+                socket.emit("imageOpts", state);
+
+                return false;
             });
         </script>
     </body>

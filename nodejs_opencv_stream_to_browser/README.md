@@ -1,5 +1,7 @@
 # Install
 
+Install OpenCV (http://docs.opencv.org/doc/tutorials/introduction/table_of_content_introduction/table_of_content_introduction.html)
+
 We need the latest node-opencv package
 
     npm install
