@@ -9,9 +9,9 @@ We need the latest node-opencv package
 # Run
 
     # Stream from a TCP stream:
-    node . <LEPTON-IP-ADDRESS>
+    node . tcp <LEPTON-IP-ADDRESS>
 
     # Stream from UDP:
-    node .
+    node . udp <LEPTON-IP-ADDRESS>
 
 Open `http://localhost:5001/` in browser.

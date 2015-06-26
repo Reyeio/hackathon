@@ -1,3 +1,10 @@
+if (process.argv.length < 3) {
+    console.error("node . [tcp/udp] <LEPTON-IP-ADDRESS>");
+    process.exit(-1);
+}
+var isTCP = process.argv[2] == "tcp";
+var host = process.argv[3];
+
 var net = require("net");
 var fs = require("fs");
 var opencv = require("opencv");
@@ -72,10 +79,9 @@ function leptonFrameArrived(imageFrame) {
 
 var b = new Buffer(0);
 
-if (process.argv.length == 3) {
+if (isTCP) {
     console.log("Connecting to TCP");
 
-    var host = process.argv[2];
     var client = new net.Socket();
 
     client.connect(1370, host, function () {
@@ -111,6 +117,8 @@ if (process.argv.length == 3) {
     var nextNumber = 0;
 
     s.on("message", function (data, rinfo) {
+        if (rinfo.address != host) return;
+
         var counter = parseInt(data[0]);
         bufferCounter |= 1 << counter;
 
